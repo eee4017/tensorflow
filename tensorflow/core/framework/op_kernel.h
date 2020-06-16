@@ -755,6 +755,10 @@ class OpKernelContext {
   explicit OpKernelContext(Params* params);
   OpKernelContext(Params* params, int num_outputs);
   ~OpKernelContext();
+    
+  std::vector<std::pair<void *, size_t>>pinned_tensors_;
+  void pin_tensor(Tensor* t);
+  void unpin_tensor();
 
   Env* env() const { return params_->device->env(); }
 
@@ -1371,6 +1375,7 @@ class OpKernelContext {
 
   TF_DISALLOW_COPY_AND_ASSIGN(OpKernelContext);
 };
+
 
 template <>
 const Eigen::ThreadPoolDevice& OpKernelContext::eigen_device() const;

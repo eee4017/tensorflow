@@ -21,6 +21,7 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cstdio>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
@@ -2127,6 +2128,8 @@ Status ExecutorState::ProcessOutputs(const NodeItem& item, OpKernelContext* ctx,
       if (dtype == item.output_type(i)) {
         if (stats && val.tensor->IsInitialized()) {
           nodestats::SetOutput(stats, i, val.tensor);
+          Tensor *t = val.tensor;
+          //fprintf(stderr, "SetOutput %p \n", t->data());
         }
         if (val.is_ref()) {
           out->has_value = true;

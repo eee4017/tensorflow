@@ -345,9 +345,16 @@ OpKernelContext::OpKernelContext(Params* params, int num_outputs)
       SetStatus(s);
     }
   }
+    for (const TensorValue& value : *params_->inputs) {
+          if (value.tensor != nullptr) {
+              Tensor *t = value.tensor;
+              pin_tensor(t);
+          }
+    }
 }
 
 OpKernelContext::~OpKernelContext() {
+  unpin_tensor();
   for (TensorValue& value : outputs_) {
     if (!value.is_ref()) {
       delete value.tensor;
@@ -361,6 +368,25 @@ OpKernelContext::~OpKernelContext() {
       wrapped_allocator.second->GetRecordsAndUnRef();
     }
   }
+}
+
+void OpKernelContext::pin_tensor(Tensor *t){
+    if(t != nullptr){
+        TensorBuffer *buf = t->getBuf();
+        if (buf != nullptr){
+            void *pointer = t->data();
+            size_t size = t->TotalBytes();
+            fprintf(stderr, "pin %p %lu\n", pointer, size);
+            pinned_tensors_.push_back(std::make_pair(pointer, size));
+        }
+    }
+}
+void OpKernelContext::unpin_tensor(){
+    for (auto the : pinned_tensors_) {
+        fprintf(stderr, "unpin %p %lu\n", the.first, the.second);
+    }
+    pinned_tensors_.clear();
+
 }
 
 Allocator* OpKernelContext::get_allocator(AllocatorAttributes attr) {
@@ -781,6 +807,7 @@ Status OpKernelContext::allocate_tensor(
     LogMemory::RecordTensorAllocation(params_->op_kernel->name(),
                                       params_->step_id, new_tensor);
   }
+  pin_tensor(&new_tensor);
   record_tensor_reference(new_tensor);
   *out_tensor = std::move(new_tensor);
   return Status::OK();

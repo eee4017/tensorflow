@@ -16,6 +16,7 @@ limitations under the License.
 #include "tensorflow/core/common_runtime/bfc_allocator.h"
 
 #include <atomic>
+#include <cstdio>
 
 #include "absl/strings/string_view.h"
 #include "tensorflow/core/common_runtime/allocator_retry.h"
@@ -227,6 +228,7 @@ void* BFCAllocator::AllocateRawInternalWithRetry(
 void* BFCAllocator::AllocateRaw(size_t unused_alignment, size_t num_bytes,
                                 const AllocationAttributes& allocation_attr) {
   VLOG(1) << "AllocateRaw " << Name() << "  " << num_bytes;
+  void *result;
   if (allocation_attr.no_retry_on_failure) {
     // Return immediately upon the first failure if this is for allocating an
     // optional scratch space.
@@ -235,7 +237,7 @@ void* BFCAllocator::AllocateRaw(size_t unused_alignment, size_t num_bytes,
     if (allocation_attr.freed_by_func != nullptr) {
       freed_by_count = (*allocation_attr.freed_by_func)();
     }
-    void* result = AllocateRawInternal(unused_alignment, num_bytes,
+    result = AllocateRawInternal(unused_alignment, num_bytes,
                                        dump_log_on_failure, freed_by_count);
     if (result == nullptr) {
       static std::atomic<int32> log_counter{0};
@@ -252,11 +254,12 @@ void* BFCAllocator::AllocateRaw(size_t unused_alignment, size_t num_bytes,
             << " memory were available.";
       }
     }
-    return result;
   } else {
-    return AllocateRawInternalWithRetry(unused_alignment, num_bytes,
+    result = AllocateRawInternalWithRetry(unused_alignment, num_bytes,
                                         allocation_attr);
   }
+  fprintf(stderr, "malloc(%lu) = %p\n", num_bytes, result);
+  return result;
 }
 
 // static
@@ -585,6 +588,7 @@ void BFCAllocator::SplitChunk(BFCAllocator::ChunkHandle h, size_t num_bytes) {
 void BFCAllocator::DeallocateRaw(void* ptr) {
   VLOG(1) << "DeallocateRaw " << Name() << " "
           << (ptr ? RequestedSize(ptr) : 0);
+  fprintf(stderr, "free(%p)\n", ptr);
   DeallocateRawInternal(ptr);
   retry_helper_.NotifyDealloc();
 }

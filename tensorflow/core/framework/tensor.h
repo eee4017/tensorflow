@@ -639,6 +639,8 @@ class Tensor {
   // buffer is one.
   bool RefCountIsOne() const;
 
+  TensorBuffer *getBuf(){ return buf_; }
+
  private:
   void CheckType(DataType expected_dtype) const;
   void CheckTypeAndIsAligned(DataType expected_dtype) const;
